@@ -1,0 +1,17 @@
+
+# emacs
+
+*~
+.#*
+
+# lean
+
+*.clean
+*.ilean
+*.olean
+*.d
+.lean_trace
+
+# ninja
+
+*.ninja*
