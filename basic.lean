@@ -155,13 +155,13 @@ namespace hom
     {A₁ : Type} [alg₁ : ALG A₁]
     {A₂ : Type} [alg₂ : ALG A₂] :
     @HOM sig _ (alg.prod A₁ A₂) _ alg₁ pr₁ :=
-    HOM.mk (take i xs, sorry)
+    HOM.mk (take i xs, rfl)
 
   definition proj₂ [instance]
     {A₁ : Type} [alg₁ : ALG A₁]
     {A₂ : Type} [alg₂ : ALG A₂] :
     @HOM sig _ (alg.prod A₁ A₂) _ alg₂ pr₂ :=
-    HOM.mk (take i xs, sorry)
+    HOM.mk (take i xs, rfl)
 
   definition prod [instance]
     {A : Type} [alg : ALG A]
@@ -173,14 +173,14 @@ namespace hom
   definition depproj [instance]
     {J : Type} {A : J → Type} [alg : Π j : J, ALG (A j)] (j : J) :
     @HOM sig _ (alg.depprod A) _ (alg j) (λ (x : Π j : J, A j), x j) :=
-    HOM.mk (take i xs, sorry)
+    HOM.mk (take i xs, rfl)
 
   definition depprod [instance]
     {A : Type} [alg : ALG A]
     {J : Type} {B : J → Type} [algb : Π j : J, ALG (B j)]
     (h : Π j : J, A → B j) [hom : Π j : J, HOM (h j)] :
     @HOM sig _ alg _ (alg.depprod B) (λ (x : A) (j : J), h j x) :=
-    HOM.mk (take i xs, sorry)
+    HOM.mk (take i xs, funext (take j, func.hom (h j)))
 
 end hom
 
