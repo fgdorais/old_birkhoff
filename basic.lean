@@ -194,6 +194,13 @@ namespace subst
   variable [sig : SIG]
   include sig
 
+  check decidable.rec
+
+  definition single {n : nat} (i : fin n) (t : term n) : subst n n :=
+    λ j : fin n, decidable.rec_on (fin.has_decidable_eq n i j)
+      (take Heq, t)
+      (take Hne, term.proj j)
+
   definition apply {m n : nat} :
     subst m n → term m → term n :=
     take us t, @term.value sig _ (alg.subst n) _ t us
