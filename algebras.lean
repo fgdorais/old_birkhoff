@@ -62,9 +62,6 @@ namespace alg
     ALG (Π j : J, A j) :=
     ALG.mk (λ i xs, (λ j : J, func.value (A j) i (λ i, xs i j)))
 
-  definition gen [instance] : ALG (term 1) :=
-    ALG.mk (λ i ts, term.appl i ts)
-
 end alg
 
 structure HOM [class] [sig : SIG]
@@ -74,7 +71,7 @@ structure HOM [class] [sig : SIG]
   (ident : ∀ i : sig, ∀ xs : fin (func.arity i) → A,
              func.value B i (λ j, h (xs j)) = h (func.value A i xs))
 
-theorem func.hom [sig : SIG]
+theorem hom.func [sig : SIG]
   {A : Type} [alga : ALG A]
   {B : Type} [algb : ALG B]
   (h : A → B) [hom : HOM h] :
@@ -99,7 +96,7 @@ theorem hom.term [sig : SIG]
       term.value B (term.appl i ts) ys
           = func.value B i (λ j, term.value B (ts j) ys)     : rfl
       ... = func.value B i (λ j, h (term.value A (ts j) xs)) : IH'
-      ... = h (func.value A i (λ j, term.value A (ts j) xs)) : func.hom h
+      ... = h (func.value A i (λ j, term.value A (ts j) xs)) : hom.func h
       ... = h (term.value A (term.appl i ts) xs)             : term.value_appl)
 
 namespace hom
@@ -118,7 +115,7 @@ namespace hom
     (g : B → C) [homf : HOM g] :
     HOM (λ x, g (f x)) :=
     HOM.mk (take i xs, let ys := (λ j : fin (func.arity i), f (xs j)) in
-            by rewrite [func.hom g, func.hom f])
+            by rewrite [hom.func g, hom.func f])
 
   definition trivial [instance]
     {A : Type} [alg : ALG A] :
@@ -142,7 +139,7 @@ namespace hom
     {B₁ : Type} [alg₁ : ALG B₁] (h₁ : A → B₁) [hom₁ : HOM h₁]
     {B₂ : Type} [alg₂ : ALG B₂] (h₂ : A → B₂) [hom₂ : HOM h₂] :
     @HOM sig _ alg _ (alg.prod B₁ B₂) (λ x : A, (h₁ x, h₂ x)) :=
-    HOM.mk (take i xs, prod.eq (func.hom h₁) (func.hom h₂))
+    HOM.mk (take i xs, prod.eq (hom.func h₁) (hom.func h₂))
 
   definition depproj [instance]
     {J : Type} {A : J → Type} [alg : Π j : J, ALG (A j)] (j : J) :
@@ -154,6 +151,6 @@ namespace hom
     {J : Type} {B : J → Type} [algb : Π j : J, ALG (B j)]
     (h : Π j : J, A → B j) [hom : Π j : J, HOM (h j)] :
     @HOM sig _ alg _ (alg.depprod B) (λ (x : A) (j : J), h j x) :=
-    HOM.mk (take i xs, funext (take j, func.hom (h j)))
+    HOM.mk (take i xs, funext (take j, hom.func (h j)))
 
 end hom
