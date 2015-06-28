@@ -65,9 +65,6 @@ namespace alg
   definition initial [instance] : ALG const :=
     ALG.mk (λ i cs, term.appl i cs)
 
-  definition subst [instance] (n : nat) : ALG (term n) :=
-    ALG.mk (λ i xs, term.appl i xs)
-
   definition prod [instance]
     (A : Type) [alga : ALG A]
     (B : Type) [algb : ALG B] :
@@ -78,6 +75,9 @@ namespace alg
     {J : Type} (A : J → Type) [alg : ∀ j : J, ALG (A j)] :
     ALG (Π j : J, A j) :=
     ALG.mk (λ i xs, (λ j : J, func.value i (λ i, xs i j)))
+
+  definition gen [instance] : ALG (term 1) :=
+    ALG.mk (λ i ts, term.appl i ts)
 
 end alg
 
@@ -141,17 +141,7 @@ namespace hom
 
   definition initial [instance]
     {A : Type} [alg : ALG A] :
-    @HOM sig _ alg.initial A alg term.value₀ :=
-    HOM.mk (take i xs, term.value_appl)
-
-  definition subst [instance]
-    {A : Type} [alg : ALG A] {n : nat} (xs : fin n → A) :
-    @HOM sig _ (alg.subst n) A alg (λ t, term.value t xs) :=
-    HOM.mk (take i xs, term.value_appl)
-
-  definition generator [instance]
-    {A : Type} [alg : ALG A] {n : nat} (x : A) :
-    @HOM sig _ (alg.subst 1) A alg (λ t, term.value₁ t x) :=
+    @HOM sig _ alg.initial A alg const.value :=
     HOM.mk (take i xs, term.value_appl)
 
   definition proj₁ [instance]
@@ -185,6 +175,11 @@ namespace hom
     @HOM sig _ alg _ (alg.depprod B) (λ (x : A) (j : J), h j x) :=
     HOM.mk (take i xs, funext (take j, func.hom (h j)))
 
+  definition gen [instance]
+    {A : Type} [alg : ALG A] {n : nat} (x : A) :
+    @HOM sig _ alg.gen A alg (λ t, term.value₁ t x) :=
+    HOM.mk (take i xs, term.value_appl)
+
 end hom
 
 definition subst [sig : SIG] (m n : nat) : Type := fin m → term n
@@ -194,7 +189,13 @@ namespace subst
   variable [sig : SIG]
   include sig
 
-  check decidable.rec
+  definition alg [instance] (n : nat) : ALG (term n) :=
+    ALG.mk (λ i xs, term.appl i xs)
+
+  definition hom [instance]
+    {A : Type} [alg : ALG A] {n : nat} (xs : fin n → A) :
+    @HOM sig _ (subst.alg n) A alg (λ t, term.value t xs) :=
+    HOM.mk (take i xs, term.value_appl)
 
   definition single {n : nat} (i : fin n) (t : term n) : subst n n :=
     λ j : fin n, decidable.rec_on (fin.has_decidable_eq n i j)
@@ -203,7 +204,7 @@ namespace subst
 
   definition apply {m n : nat} :
     subst m n → term m → term n :=
-    take us t, @term.value sig _ (alg.subst n) _ t us
+    take us t, @term.value sig _ (subst.alg n) _ t us
 
   lemma apply_proj {m n : nat} {us : subst m n} (i : fin m) :
     subst.apply us (term.proj i) = us i :=
@@ -218,7 +219,7 @@ namespace subst
 
   theorem comp_apply {m n p : nat} {us : subst n p} {vs : subst m n} {t : term m} :
     subst.apply (comp us vs) t = subst.apply us (subst.apply vs t) :=
-    @hom.term sig _ (alg.subst n) _ (alg.subst p) _ (hom.subst us) _ t vs
+    @hom.term sig _ (subst.alg n) _ (subst.alg p) _ (subst.hom us) _ t vs
 
   theorem comp_assoc {m n p q : nat} {us : subst p q} {vs : subst n p} {ws : subst m n} :
     comp us (comp vs ws) = comp (comp us vs) ws :=
