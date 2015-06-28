@@ -18,6 +18,8 @@ inductive term [sig : SIG] : nat → Type :=
 | proj : ∀ {n : nat}, fin n → term n
 | appl : ∀ {n : nat} (i : sig), (fin (func.arity i) → term n) → term n
 
+definition const [sig : SIG] : Type := term 0
+
 structure ALG [class] [sig : SIG] (A : Type) :=
   (value : ∀ i : sig, (fin (func.arity i) → A) → A)
 
@@ -34,7 +36,7 @@ section
       (take n i xs, xs i)
       (take n i ts IH xs, func.value i (λ j, IH j xs))
 
-  definition term.value₀ : term 0 → A :=
+  definition const.value : const → A :=
     λ t, term.value t fin.elim0
 
   definition term.value₁ : term 1 → A → A :=
@@ -60,10 +62,11 @@ namespace alg
   definition trivial [instance] : ALG unit :=
     ALG.mk (λ i xs, unit.star)
 
+  definition initial [instance] : ALG const :=
+    ALG.mk (λ i cs, term.appl i cs)
+
   definition subst [instance] (n : nat) : ALG (term n) :=
     ALG.mk (λ i xs, term.appl i xs)
-
-  definition initial [instance] : ALG (term 0) := alg.subst 0
 
   definition prod [instance]
     (A : Type) [alga : ALG A]
