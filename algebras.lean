@@ -9,7 +9,7 @@ structure ALG [class] [sig : SIG] (A : Type) :=
   (value : ∀ i : sig, (fin (func.arity i) → A) → A)
 
 section
-  variables [sig : SIG] {A : Type} [alg : ALG A]
+  variables [sig : SIG] (A : Type) [alg : ALG A]
   include sig A alg
 
   definition func.value :
@@ -19,23 +19,27 @@ section
     ∀ {n : nat}, term n → (fin n → A) → A :=
     @term.rec sig _
       (take n i xs, xs i)
-      (take n i ts IH xs, func.value i (λ j, IH j xs))
+      (take n i ts IH xs, func.value A i (λ j, IH j xs))
 
   definition const.value : const → A :=
-    λ t, term.value t fin.elim0
+    λ t, term.value A t fin.elim0
 
   definition term.value₁ : term 1 → A → A :=
-    λ t x, term.value t (λ j, x)
+    λ t x, term.value A t (λ j, x)
 
   lemma term.value_proj {n : nat} {i : fin n} :
-    ∀ {xs : fin n → A}, term.value (term.proj i) xs
+    ∀ {xs : fin n → A}, term.value A (term.proj i) xs
                         = xs i :=
     take xs, rfl
 
   lemma term.value_appl {n : nat} {i : sig} {ts : fin (func.arity i) → term n} :
-    ∀ {xs : fin n → A}, term.value (term.appl i ts) xs
-                        = func.value i (λ j, term.value (ts j) xs) :=
+    ∀ {xs : fin n → A}, term.value A (term.appl i ts) xs
+                        = func.value A i (λ j, term.value A (ts j) xs) :=
     take xs, rfl
+
+  lemma const.value_appl (i : sig) {ts : fin (func.arity i) → const} :
+    const.value A (term.appl i ts) = func.value A i (λ j, const.value A (ts j)) :=
+    rfl
 
 end
 
@@ -47,19 +51,16 @@ namespace alg
   definition trivial [instance] : ALG unit :=
     ALG.mk (λ i xs, unit.star)
 
-  definition initial [instance] : ALG const :=
-    ALG.mk (λ i cs, term.appl i cs)
-
   definition prod [instance]
     (A : Type) [alga : ALG A]
     (B : Type) [algb : ALG B] :
     ALG (A × B) :=
-    ALG.mk (λ i xs, (func.value i (λ j, pr₁ (xs j)), func.value i (λ j, pr₂ (xs j))))
+    ALG.mk (λ i xs, (func.value A i (λ j, pr₁ (xs j)), func.value B i (λ j, pr₂ (xs j))))
 
   definition depprod [instance]
     {J : Type} (A : J → Type) [alg : ∀ j : J, ALG (A j)] :
     ALG (Π j : J, A j) :=
-    ALG.mk (λ i xs, (λ j : J, func.value i (λ i, xs i j)))
+    ALG.mk (λ i xs, (λ j : J, func.value (A j) i (λ i, xs i j)))
 
   definition gen [instance] : ALG (term 1) :=
     ALG.mk (λ i ts, term.appl i ts)
@@ -71,14 +72,14 @@ structure HOM [class] [sig : SIG]
   {B : Type} [algb : ALG B]
   (h : A → B) :=
   (ident : ∀ i : sig, ∀ xs : fin (func.arity i) → A,
-             func.value i (λ j, h (xs j)) = h (func.value i xs))
+             func.value B i (λ j, h (xs j)) = h (func.value A i xs))
 
 theorem func.hom [sig : SIG]
   {A : Type} [alga : ALG A]
   {B : Type} [algb : ALG B]
   (h : A → B) [hom : HOM h] :
   ∀ {i : sig} {xs : fin (func.arity i) → A},
-    func.value i (λ j, h (xs j)) = h (func.value i xs) :=
+    func.value B i (λ j, h (xs j)) = h (func.value A i xs) :=
   @HOM.ident sig A alga B algb h hom
 
 theorem hom.term [sig : SIG]
@@ -86,20 +87,20 @@ theorem hom.term [sig : SIG]
   {B : Type} [algb : ALG B]
   (h : A → B) [hom : HOM h] :
   ∀ {n : nat} {t : term n} {xs : fin n → A},
-    term.value t (λ j, h (xs j)) = h (term.value t xs) :=
+    term.value B t (λ j, h (xs j)) = h (term.value A t xs) :=
   @term.rec _ _
     (take n i xs, rfl)
     (take n i ts IH xs,
      let ys := λ j : fin n, h (xs j) in
-     have IH' : (λ k, term.value (ts k) ys)
-                = (λ k, h (term.value (ts k) xs)),
+     have IH' : (λ k, term.value B (ts k) ys)
+                = (λ k, h (term.value A (ts k) xs)),
      from funext (λ k, IH k xs),
      calc
-      term.value (term.appl i ts) ys
-          = func.value i (λ j, term.value (ts j) ys)     : rfl
-      ... = func.value i (λ j, h (term.value (ts j) xs)) : IH'
-      ... = h (func.value i (λ j, term.value (ts j) xs)) : func.hom h
-      ... = h (term.value (term.appl i ts) xs)           : term.value_appl)
+      term.value B (term.appl i ts) ys
+          = func.value B i (λ j, term.value B (ts j) ys)     : rfl
+      ... = func.value B i (λ j, h (term.value A (ts j) xs)) : IH'
+      ... = h (func.value A i (λ j, term.value A (ts j) xs)) : func.hom h
+      ... = h (term.value A (term.appl i ts) xs)             : term.value_appl)
 
 namespace hom
   open prod
@@ -123,11 +124,6 @@ namespace hom
     {A : Type} [alg : ALG A] :
     @HOM sig A alg unit alg.trivial (λ x, unit.star) :=
     HOM.mk (take i xs, unit.eq _ _)
-
-  definition initial [instance]
-    {A : Type} [alg : ALG A] :
-    @HOM sig _ alg.initial A alg const.value :=
-    HOM.mk (take i xs, term.value_appl)
 
   definition proj₁ [instance]
     {A₁ : Type} [alg₁ : ALG A₁]
@@ -159,10 +155,5 @@ namespace hom
     (h : Π j : J, A → B j) [hom : Π j : J, HOM (h j)] :
     @HOM sig _ alg _ (alg.depprod B) (λ (x : A) (j : J), h j x) :=
     HOM.mk (take i xs, funext (take j, func.hom (h j)))
-
-  definition gen [instance]
-    {A : Type} [alg : ALG A] {n : nat} (x : A) :
-    @HOM sig _ alg.gen A alg (λ t, term.value₁ t x) :=
-    HOM.mk (take i xs, term.value_appl)
 
 end hom
