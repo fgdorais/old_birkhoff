@@ -7,29 +7,33 @@ open nat
 
 definition subst [sig : SIG] (m n : nat) : Type := fin m → term n
 
+definition const.alg [instance] [sig : SIG] : ALG const :=
+  ALG.mk const.appl
+
+definition const.hom [instance] [sig : SIG] (A : Type) [alg : ALG A] : HOM (const.value A) :=
+  HOM.mk (λ i cs, rfl)
+
+definition term.alg [instance] [sig : SIG] (n : nat) : ALG (term n) :=
+  ALG.mk term.appl
+
 namespace subst
-  open alg
   variable [sig : SIG]
   include sig
 
-  definition alg [instance] (n : nat) : ALG (term n) :=
-    ALG.mk (λ i xs, term.appl i xs)
-
   definition apply {m n : nat} :
     subst m n → term m → term n :=
-    take us t, @term.value sig (term n) (subst.alg n) m t us
+    take us t, @term.value sig (term n) (term.alg n) m t us
 
   lemma apply_proj {m n : nat} {us : subst m n} (i : fin m) :
     subst.apply us (term.proj i) = us i :=
-    term.value_proj
+    !term.value_proj
 
   lemma apply_func {m n : nat} {us : subst m n} (i : sig) {ts : fin (func.arity i) → term m} :
     subst.apply us (term.appl i ts) = term.appl i (λ k, subst.apply us (ts k)) :=
-    term.value_appl
+    !term.value_appl
 
   definition hom [instance]
-    {m n : nat} (us : subst m n) :
-    @HOM sig (term m) (subst.alg m) (term n) (subst.alg n) (subst.apply us) :=
+    {m n : nat} (us : subst m n) : HOM (subst.apply us) :=
     HOM.mk (take i ts, subst.apply_func i)
 
   definition single {n : nat} (i : fin n) (t : term n) : subst n n :=
@@ -42,7 +46,7 @@ namespace subst
 
   theorem comp_apply {m n p : nat} {us : subst n p} {vs : subst m n} {t : term m} :
     subst.apply (comp us vs) t = subst.apply us (subst.apply vs t) :=
-    @hom.term sig _ (subst.alg n) _ (subst.alg p) _ (subst.hom us) _ t vs
+    @hom.term sig _ (term.alg n) _ (term.alg p) _ (subst.hom us) _ t vs
 
   theorem comp_assoc {m n p q : nat} {us : subst p q} {vs : subst n p} {ws : subst m n} :
     comp us (comp vs ws) = comp (comp us vs) ws :=
