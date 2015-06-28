@@ -15,19 +15,9 @@ namespace subst
   definition alg [instance] (n : nat) : ALG (term n) :=
     ALG.mk (λ i xs, term.appl i xs)
 
-  definition hom [instance]
-    {A : Type} [alg : ALG A] {n : nat} (xs : fin n → A) :
-    @HOM sig _ (subst.alg n) A alg (λ t, term.value t xs) :=
-    HOM.mk (take i xs, term.value_appl)
-
-  definition single {n : nat} (i : fin n) (t : term n) : subst n n :=
-    λ j : fin n, decidable.rec_on (fin.has_decidable_eq n i j)
-      (take Heq, t)
-      (take Hne, term.proj j)
-
   definition apply {m n : nat} :
     subst m n → term m → term n :=
-    take us t, @term.value sig _ (subst.alg n) _ t us
+    take us t, @term.value sig (term n) (subst.alg n) m t us
 
   lemma apply_proj {m n : nat} {us : subst m n} (i : fin m) :
     subst.apply us (term.proj i) = us i :=
@@ -36,6 +26,16 @@ namespace subst
   lemma apply_func {m n : nat} {us : subst m n} (i : sig) {ts : fin (func.arity i) → term m} :
     subst.apply us (term.appl i ts) = term.appl i (λ k, subst.apply us (ts k)) :=
     term.value_appl
+
+  definition hom [instance]
+    {m n : nat} (us : subst m n) :
+    @HOM sig (term m) (subst.alg m) (term n) (subst.alg n) (subst.apply us) :=
+    HOM.mk (take i ts, subst.apply_func i)
+
+  definition single {n : nat} (i : fin n) (t : term n) : subst n n :=
+    λ j : fin n, decidable.rec_on (fin.has_decidable_eq n i j)
+      (take Heq, t)
+      (take Hne, term.proj j)
 
   definition comp {m n p : nat} : subst n p → subst m n → subst m p :=
     take us vs k, subst.apply us (vs k)
