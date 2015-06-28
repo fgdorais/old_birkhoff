@@ -19,6 +19,9 @@ inductive term [sig : SIG] : nat → Type :=
 
 definition const [sig : SIG] : Type := term 0
 
+definition const.appl [sig : SIG] (i : sig) : (fin (func.arity i) → const) → const :=
+  term.appl i
+
 namespace sig
 
   definition const [instance] (I : Type) : SIG :=
