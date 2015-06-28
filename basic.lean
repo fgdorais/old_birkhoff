@@ -18,3 +18,16 @@ inductive term [sig : SIG] : nat → Type :=
 | appl : ∀ {n : nat} (i : sig), (fin (func.arity i) → term n) → term n
 
 definition const [sig : SIG] : Type := term 0
+
+namespace sig
+
+  definition const [instance] (I : Type) : SIG :=
+    SIG.mk I (λ i, 0)
+
+  definition add [instance] (sig₁ sig₂ : SIG) : SIG :=
+    SIG.mk (sum sig₁ sig₂) (sum.rec (@func.arity sig₁) (@func.arity sig₂))
+
+  definition sum [instance] {I : Type} (sig : I → SIG) : SIG :=
+    SIG.mk (sigma sig) (sigma.rec (λ i, @func.arity (sig i)))
+
+end sig
